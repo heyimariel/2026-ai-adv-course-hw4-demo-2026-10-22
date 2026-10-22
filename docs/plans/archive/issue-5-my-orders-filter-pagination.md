@@ -26,3 +26,4 @@
 - `npm run test:unit`：9 個檔案、82 項測試通過。
 - `npm run test:integration`：1 個檔案、12 項測試通過。
 - `npm run test:acceptance -- order-filter`：1 個檔案、7 項測試通過。
+- 審查後補強 safe integer 與 offset 邊界，極大 `page` 會回 400；OpenAPI 亦明確記錄 `limit` 的截斷行為與錯誤格式。

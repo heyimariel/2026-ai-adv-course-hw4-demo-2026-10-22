@@ -378,9 +378,9 @@
             "schema": {
               "type": "integer",
               "minimum": 1,
-              "maximum": 50,
               "default": 10
-            }
+            },
+            "description": "每頁筆數；超過 50 時以 50 計"
           }
         ],
         "responses": {
@@ -465,7 +465,26 @@
             }
           },
           "400": {
-            "description": "查詢參數格式錯誤"
+            "description": "查詢參數格式錯誤",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

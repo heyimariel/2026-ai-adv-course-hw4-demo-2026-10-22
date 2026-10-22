@@ -138,7 +138,16 @@ describe('Orders API', () => {
   });
 
   it('should reject invalid order list query parameters', async () => {
-    for (const query of ['status=unknown', 'page=0', 'page=1.5', 'limit=-1', 'limit=abc']) {
+    const invalidQueries = [
+      'status=unknown',
+      'page=0',
+      'page=1.5',
+      'page=9007199254740991',
+      'limit=-1',
+      'limit=abc'
+    ];
+
+    for (const query of invalidQueries) {
       const res = await request(app)
         .get(`/api/orders?${query}`)
         .set('Authorization', `Bearer ${userToken}`);

@@ -268,8 +268,8 @@ router.post('/', (req, res) => {
  *         schema:
  *           type: integer
  *           minimum: 1
- *           maximum: 50
  *           default: 10
+ *         description: 每頁筆數；超過 50 時以 50 計
  *     responses:
  *       200:
  *         description: 成功
@@ -325,6 +325,18 @@ router.post('/', (req, res) => {
  *                   type: string
  *       400:
  *         description: 查詢參數格式錯誤
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *                 error:
+ *                   type: string
+ *                 message:
+ *                   type: string
  */
 router.get('/', (req, res) => {
   const allowedStatuses = ['pending', 'paid', 'failed'];
@@ -350,6 +362,14 @@ router.get('/', (req, res) => {
 
   const limit = Math.min(requestedLimit, 50);
   const offset = (page - 1) * limit;
+  if (!Number.isSafeInteger(offset)) {
+    return res.status(400).json({
+      data: null,
+      error: 'VALIDATION_ERROR',
+      message: 'page 超出可支援範圍'
+    });
+  }
+
   const { orders, total } = listOrdersForUser(req.user.userId, { status, limit, offset });
 
   res.json({
