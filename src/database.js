@@ -2,6 +2,11 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
+const {
+  TEST_ADMIN_EMAIL,
+  TEST_ADMIN_PASSWORD,
+  resolveAdminCredentials
+} = require('./config/adminCredentials');
 
 const configuredDatabasePath = process.env.DATABASE_PATH;
 const dbPath = configuredDatabasePath === ':memory:'
@@ -113,16 +118,55 @@ function initializeDatabase() {
 }
 
 function seedAdminUser() {
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@hexschool.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || '12345678';
+  const { email: adminEmail, password: adminPassword } = resolveAdminCredentials();
 
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(adminEmail);
+  const saltRounds = process.env.NODE_ENV === 'test' ? 1 : 10;
+  const passwordHash = bcrypt.hashSync(adminPassword, saltRounds);
+  let existing = db.prepare('SELECT id, email, password_hash, role FROM users WHERE email = ?').get(adminEmail);
+  let legacyAdminToDisable = null;
+
+  // Upgrade the known starter account in-place so changing the environment
+  // credentials does not leave a publicly documented administrator behind.
+  if (process.env.NODE_ENV !== 'test' && adminEmail !== TEST_ADMIN_EMAIL) {
+    const legacyAdmin = db.prepare(
+      'SELECT id, email, password_hash, role FROM users WHERE email = ? AND role = ?'
+    ).get(TEST_ADMIN_EMAIL, 'admin');
+
+    if (legacyAdmin && bcrypt.compareSync(TEST_ADMIN_PASSWORD, legacyAdmin.password_hash)) {
+      if (existing) {
+        legacyAdminToDisable = legacyAdmin;
+      } else {
+        db.prepare('UPDATE users SET email = ?, password_hash = ? WHERE id = ?')
+          .run(adminEmail, passwordHash, legacyAdmin.id);
+        existing = { ...legacyAdmin, email: adminEmail, password_hash: passwordHash };
+      }
+    }
+  }
+
   if (!existing) {
-    const saltRounds = process.env.NODE_ENV === 'test' ? 1 : 10;
-    const hash = bcrypt.hashSync(adminPassword, saltRounds);
     db.prepare(
       'INSERT INTO users (id, email, password_hash, name, role) VALUES (?, ?, ?, ?, ?)'
-    ).run(uuidv4(), adminEmail, hash, 'Admin', 'admin');
+    ).run(uuidv4(), adminEmail, passwordHash, 'Admin', 'admin');
+    return;
+  }
+
+  if (existing.role !== 'admin') {
+    throw new Error('ADMIN_EMAIL 已由非管理員帳號使用');
+  }
+
+  // The environment is the source of truth for the seeded administrator.
+  // This also provides a deterministic password-rotation path.
+  if (!bcrypt.compareSync(adminPassword, existing.password_hash)) {
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+      .run(passwordHash, existing.id);
+  }
+
+  // If the configured administrator already existed, preserve legacy order
+  // ownership while revoking the public starter account's admin access.
+  if (legacyAdminToDisable) {
+    const disabledPasswordHash = bcrypt.hashSync(`${uuidv4()}${uuidv4()}`, saltRounds);
+    db.prepare("UPDATE users SET password_hash = ?, role = 'user' WHERE id = ?")
+      .run(disabledPasswordHash, legacyAdminToDisable.id);
   }
 }
 

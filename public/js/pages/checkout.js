@@ -12,7 +12,6 @@ createApp({
       recipientEmail: '',
       recipientAddress: '',
       shippingMethod: 'home_delivery',
-      isRemoteArea: false,
       isExpress: false
     });
     const errors = ref({});
@@ -23,10 +22,15 @@ createApp({
       }, 0);
     });
 
+    const remoteArea = computed(function () {
+      return /(連江縣|金門縣|澎湖縣|蘭嶼鄉|綠島鄉|琉球鄉|東沙|南沙)/
+        .test(form.value.recipientAddress.replace(/\s+/g, ''));
+    });
+
     const shippingFee = computed(function () {
       var baseFee = form.value.shippingMethod === 'convenience_store' ? 60 : 120;
       if (cartTotal.value >= 1500) baseFee = 0;
-      return baseFee + (form.value.isRemoteArea ? 200 : 0) + (form.value.isExpress ? 250 : 0);
+      return baseFee + (remoteArea.value ? 200 : 0) + (form.value.isExpress ? 250 : 0);
     });
 
     const orderTotal = computed(function () {
@@ -84,6 +88,7 @@ createApp({
       form,
       errors,
       cartTotal,
+      remoteArea,
       shippingFee,
       orderTotal,
       submitOrder

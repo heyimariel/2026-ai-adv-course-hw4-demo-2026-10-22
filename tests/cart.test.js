@@ -4,6 +4,7 @@ describe('Cart API', () => {
   const sessionId = 'test-session-' + Date.now();
   let productId;
   let cartItemId;
+  let memberCartItemId;
   let userToken;
 
   beforeAll(async () => {
@@ -83,6 +84,23 @@ describe('Cart API', () => {
     expect(res.body).toHaveProperty('data');
     expect(res.body).toHaveProperty('error', null);
     expect(res.body.data).toHaveProperty('product_id', productId);
+    memberCartItemId = res.body.data.id;
+  });
+
+  it('should reject non-positive or non-integer quantity when updating cart', async () => {
+    for (const quantity of [0, -1, 1.5, '1.5', true, [2]]) {
+      const res = await request(app)
+        .patch(`/api/cart/${memberCartItemId}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ quantity });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        data: null,
+        error: 'VALIDATION_ERROR',
+        message: 'quantity 必須為正整數'
+      });
+    }
   });
 
   it('should fail to add non-existent product to cart', async () => {

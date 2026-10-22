@@ -30,9 +30,8 @@ describe('Orders API', () => {
       .send({
         recipientName: '測試收件人',
         recipientEmail: 'recipient@example.com',
-        recipientAddress: '台北市測試路 123 號',
+        recipientAddress: '澎湖縣馬公市測試路 123 號',
         shippingMethod: 'convenience_store',
-        isRemoteArea: true,
         isExpress: true,
       });
 
@@ -127,6 +126,20 @@ describe('Orders API', () => {
     );
     expect(res.body.data).toHaveProperty('items');
     expect(Array.isArray(res.body.data.items)).toBe(true);
+  });
+
+  it('should hide another member order as not found', async () => {
+    const { token: anotherUserToken } = await registerUser();
+    const res = await request(app)
+      .get(`/api/orders/${orderId}`)
+      .set('Authorization', `Bearer ${anotherUserToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({
+      data: null,
+      error: 'NOT_FOUND',
+      message: '訂單不存在'
+    });
   });
 
   it('should return 404 for non-existent order', async () => {

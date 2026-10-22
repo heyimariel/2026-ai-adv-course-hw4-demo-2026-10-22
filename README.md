@@ -35,7 +35,7 @@ Windows 同學請在實際要使用的終端機環境（PowerShell 或 WSL2）�
 
 ```bash
 npm install
-cp .env.example .env    # 至少設定 JWT_SECRET
+cp .env.example .env    # 至少設定 JWT_SECRET、ADMIN_EMAIL、ADMIN_PASSWORD
 npm run start           # http://localhost:3001
 ```
 

@@ -13,10 +13,10 @@
 ## 執行指令
 
 ```bash
-# 單元與 API 測試（7 個檔案、55 項測試）
+# 單元與 API 測試（8 個檔案、65 項測試）
 npm run test:unit
 
-# 結帳、訂單、DB、庫存、回滾與綠界整合測試（10 項測試）
+# 結帳、訂單、DB、庫存、回滾與綠界整合測試（12 項測試）
 npm run test:integration
 
 # 已另行啟動 http://localhost:3001 後，執行真實付款 E2E
@@ -65,13 +65,13 @@ Playwright E2E 需要已啟動的服務並連接綠界 staging，**不在 CI 執
 
 測試流程：
 
-1. 以 `admin@hexschool.com` 登入，驗證 HTTP 200 及瀏覽器 JWT。
+1. 以 `E2E_ADMIN_EMAIL`／`E2E_ADMIN_PASSWORD` 登入，驗證 HTTP 200 及瀏覽器 JWT。
 2. 清掉該帳號舊購物車，以 UI 選商品、加車、進結帳並填寫宅配資料。
 3. 驗證建單 HTTP 201，從 `/ecpay/payment/:id` 導頁取得訂單 ID，並以 API 核對配送費與總額。
 4. 於綠界 staging 選擇「網路 ATM」、「台灣土地銀行」、「前往付款」，關閉提示後在土地銀行測試頁按 `Save`。
 5. 等待綠界付款成功，擷取 `ecpay-payment-success.png`；返回商店後斷言頁面「已付款」與 API `status: paid`，再擷取 `payment-return-success.png`。兩張均附加至 Playwright report。
 
-E2E 預設使用本機 Google Chrome；可以 `E2E_BASE_URL`、`E2E_ADMIN_EMAIL`、`E2E_ADMIN_PASSWORD`、`PLAYWRIGHT_CHANNEL` 與 `PLAYWRIGHT_HEADLESS=false` 覆寫。此測試會寫入現行開發 SQLite、扣除一件商品庫存並留下已付款訂單。失敗時輸出 `test-results/`、trace、screenshot 與 video。
+E2E 預設使用本機 Google Chrome；執行前必須設定與已啟動服務一致的 `E2E_ADMIN_EMAIL`、`E2E_ADMIN_PASSWORD`，並可用 `E2E_BASE_URL`、`PLAYWRIGHT_CHANNEL` 與 `PLAYWRIGHT_HEADLESS=false` 覆寫其他設定。此測試會寫入現行開發 SQLite、扣除一件商品庫存並留下已付款訂單。失敗時輸出 `test-results/`、trace、screenshot 與 video。
 
 ## Postman Collection
 
@@ -136,6 +136,7 @@ Integration Test 中有兩層防護：
 | 檔案 | 範圍 |
 |------|------|
 | `tests/shipping.test.js` | Shipping 純函式、門檻與附加費 |
+| `tests/adminCredentials.test.js` | 非測試環境管理員帳密必要性與安全基線 |
 | `tests/auth.test.js` | 註冊、登入、重複 Email、個人資料、非字串欄位、JSON 格式錯誤 |
 | `tests/products.test.js` | 商品列表、分頁、詳情與 404 |
 | `tests/cart.test.js` | 訪客/會員購物車 CRUD、數量驗證、登入/註冊時合併訪客購物車（含庫存上限） |
@@ -152,16 +153,18 @@ Integration Test 中有兩層防護：
 | 情境 | 主要斷言 |
 |------|----------|
 | 記憶體 DB | `PRAGMA database_list` 無實體檔案 |
-| 前端入口 | `/cart`、`/checkout`、checkout.js 皆可取得，配送欄位存在 |
+| 前端入口 | `/cart`、`/checkout`、checkout.js 皆可取得，配送欄位與地址判定提示存在 |
 | 完整建單 | 註冊 → 取商品 → 加購物車 → 建立含配送資訊的訂單 |
 | DB 持久化 | orders、order_items、收件/配送快照正確 |
 | 金額 | 小計 1,400、運費 510、總額 1,910 |
+| 偏遠地區 | 即使客戶端傳 false，伺服器仍依偏遠地址加收並保存快照 |
 | 庫存/購物車 | 庫存 10 → 8，建單後購物車清空 |
 | 庫存不足 | 400 / `STOCK_INSUFFICIENT`，無訂單、無扣庫存、購物車保留 |
 | transaction 回滾 | 臨時 SQLite trigger 使第二筆品項寫入失敗，驗證訂單/品項/庫存/購物車全數回滾 |
 | ECPay AIO 表單 | staging action、MerchantTradeNo、TotalAmount、ItemName、URL 與 CheckMacValue |
 | QueryTradeInfo | mock 已付（附有效 CheckMacValue）、未付、HTTP 錯誤；驗證 API 與 DB 狀態 |
-| QueryTradeInfo 驗證 | 簽章遭竄改、金額不符的「已付」回應皆回 500，訂單維持 pending |
+| QueryTradeInfo 驗證 | 簽章缺失／遭竄改、MerchantID 或金額不符的「已付」回應皆回 500，訂單維持 pending |
+| 付款查詢節流 | 同一會員與訂單立即重查回 429，且不重複呼叫綠界 |
 
 ### 成功建單資料
 
@@ -189,7 +192,7 @@ stock        = 10 - 2 = 8
 
 - AIO 表單以 `verifyCheckMacValue()` 重算簽章。
 - QueryTradeInfo 必須使用 `vi.stubGlobal('fetch', ...)`，禁止真實外部請求。
-- 模擬「已付款」回應須以 `generateCheckMacValue()` 簽章，並帶正確的 `MerchantTradeNo` 與 `TradeAmt`；成功回應應將訂單狀態設為 `paid`。
+- 模擬「已付款」回應須以 `generateCheckMacValue()` 簽章，並帶正確的 `MerchantID`、`MerchantTradeNo` 與 `TradeAmt`；成功回應應將訂單狀態設為 `paid`。
 - 未付或查詢錯誤應保留 `pending`。
 
 ## 撰寫新 Integration Test

@@ -56,19 +56,15 @@ npm run test:e2e
 npm run postman
 ```
 
-### 預設帳號
+### 管理員帳號
 
-| 角色 | Email | 密碼 |
-|------|-------|------|
-| 管理員 | admin@hexschool.com | 12345678 |
-
-管理員帳號在伺服器首次啟動時自動建立（可透過 `ADMIN_EMAIL` / `ADMIN_PASSWORD` 環境變數自訂）。
+非測試環境必須透過 `ADMIN_EMAIL` 與 `ADMIN_PASSWORD` 設定管理員帳號；密碼至少 12 個字元，且不得使用公開的測試預設密碼。伺服器會以環境設定同步 seed 管理員密碼，讓部署者可以透過更新環境變數完成輪替。
 
 ## 配送費用
 
 - 宅配基本運費 120 元；超商取貨 60 元。
 - 商品小計滿 1,500 元免基本運費。
-- 偏遠地區加收 200 元；當日急件加收 250 元。
+- 偏遠地區由伺服器依收件地址判定並加收 200 元；當日急件加收 250 元。
 - 滿額免運不免除附加費。建立訂單時由伺服器端 `src/utils/shipping.js` 統一重算。
 
 ## 常用指令
@@ -80,8 +76,8 @@ npm run postman
 | `npm run dev:css` | Tailwind CSS watch 模式 |
 | `npm run css:build` | 編譯並壓縮 CSS |
 | `npm run test` | 同 `npm run test:unit` |
-| `npm run test:unit` | 執行單元與 API 測試（55 項） |
-| `npm run test:integration` | 執行結帳、DB、庫存、回滾與綠界整合測試（10 項） |
+| `npm run test:unit` | 執行單元與 API 測試（65 項） |
+| `npm run test:integration` | 執行結帳、DB、庫存、回滾與綠界整合測試（12 項） |
 | `npm run test:e2e` | 對已啟動的 3001 服務執行綠界網路 ATM 實測（1 項） |
 | `npm run test:acceptance` | 第四場 3 個 Issue 的驗收測試；可加檔名篩選，如 `npm run test:acceptance -- coupon` |
 | `npm run openapi` | 生成 openapi.json |

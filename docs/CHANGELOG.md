@@ -4,13 +4,23 @@
 
 ## [Unreleased]
 
+### Security
+- 非測試環境不再接受公開預設管理員密碼；`ADMIN_EMAIL`／`ADMIN_PASSWORD` 改為必要設定，並支援 seed 管理員密碼輪替與舊 starter 帳號升級
+- 會員訂單詳情改以訂單 ID 與目前會員 ID 聯合查詢，阻止跨會員讀取收件與交易資料
+- 購物車 PATCH 統一使用正整數驗證，拒絕小數、零、負數與異常型別，避免少付貨款及小數庫存
+- 綠界已付款回應改為強制驗證 CheckMacValue，並核對 MerchantID、交易編號與金額
+- 付款狀態查詢加入每會員、每訂單 5 秒冷卻，過快重試回 429
+
 ### Changed
+- 偏遠地區附加費改由伺服器依收件地址規則判定，不再採信客戶端旗標
+- Unit/API 測試擴充為 65 項，Integration Test 擴充為 12 項
 - 抽出 `src/services/orderService.js`（訂單查詢、序列化與建單 transaction）與 `src/services/paymentService.js`（QueryTradeInfo 結果判斷與付款狀態更新）
 - 新增 `src/utils/validators.js` 統一路由輸入驗證；Shipping 模組改以規則表描述，單元測試改為 table-driven
 - `postman_collection.json` 不進版控（列入 `.gitignore`），需要時以 `npm run postman` 產生；路由變更後只需以 `npm run openapi` 同步 `openapi.json`。`docs/TESTING.md` 補上產生與匯入步驟
 - `scripts/generate-postman.js` 產生結果固定，同一份 OpenAPI 重跑不再出現亂數差異
 
 ### Fixed
+- 免運條件改為商品小計大於等於 1,500 元，恢復原本被 skip 的精確邊界測試
 - 修正 macOS 上 Vitest 測試隨機失敗（401、200 或逾時）：supertest 自開的臨時伺服器綁在 `::`、卻連到 `127.0.0.1`，可能連到同埠的其他程式。新增 `tests/setup/testServer.js` 先在 `127.0.0.1` 開好伺服器，Unit、Integration 與驗收測試皆改用它
 
 ## [1.2.0] - 2026-10-06

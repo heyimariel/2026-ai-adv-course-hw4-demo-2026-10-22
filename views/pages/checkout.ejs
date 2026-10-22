@@ -67,13 +67,10 @@
             </span>
             <span class="text-text-secondary">基本運費 NT$ 60</span>
           </label>
-          <label class="flex items-center justify-between border border-gray-200 rounded-xl p-3 cursor-pointer">
-            <span class="flex items-center gap-2">
-              <input v-model="form.isRemoteArea" type="checkbox" class="accent-rose-primary" />
-              <span>偏遠地區</span>
-            </span>
-            <span class="text-text-secondary">+ NT$ 200</span>
-          </label>
+          <div class="flex items-center justify-between border border-gray-200 rounded-xl p-3">
+            <span>偏遠地區（系統依收件地址判定）</span>
+            <span class="text-text-secondary">{{ remoteArea ? '+ NT$ 200' : '不加收' }}</span>
+          </div>
           <label class="flex items-center justify-between border border-gray-200 rounded-xl p-3 cursor-pointer">
             <span class="flex items-center gap-2">
               <input v-model="form.isExpress" type="checkbox" class="accent-rose-primary" />

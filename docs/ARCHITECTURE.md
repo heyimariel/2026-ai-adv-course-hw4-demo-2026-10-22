@@ -396,7 +396,7 @@ server.js
 ```
 用戶呼叫 POST /api/orders (需 JWT)
 │
-├─ 1. 驗證收件人資訊與配送條件
+├─ 1. 驗證收件人資訊與配送條件，依收件地址判定偏遠地區
 ├─ 2. 取得用戶購物車所有品項（JOIN products 取得即時價格與庫存）
 ├─ 3. 檢查購物車是否為空 → 400 CART_EMPTY
 ├─ 4. 檢查每個品項庫存是否充足 → 400 STOCK_INSUFFICIENT（列出所有不足商品名稱）
@@ -417,7 +417,7 @@ server.js
 
 ## Shipping 模組
 
-`src/utils/shipping.js` 不依賴 Express 或資料庫，專責根據 `subtotal`、配送方式、偏遠地區與當日急件條件，計算基本運費、附加費、最終運費與訂單總額。滿 1,500 元僅免基本運費，附加費仍依條件累加。建立訂單路由不接受前端自行計算的金額。
+`src/utils/shipping.js` 不依賴 Express 或資料庫，提供伺服器端偏遠地址判定，並根據 `subtotal`、配送方式、偏遠地區與當日急件條件計算基本運費、附加費、最終運費與訂單總額。滿 1,500 元即免基本運費，附加費仍依條件累加。建立訂單路由不接受前端自行計算的金額或偏遠地區旗標。
 
 ## 綠界金流付款流程
 
@@ -438,9 +438,10 @@ server.js
   │
   └─ 付款驗證
        └─ POST /api/orders/:id/check-payment
+            ├─ 同會員與訂單 5 秒冷卻，過快重試回 429
             ├─ 呼叫綠界 QueryTradeInfo API（TimeStamp 每次重新產生）
             ├─ TradeStatus === '1'
-            │    ├─ 驗證 CheckMacValue，並核對 MerchantTradeNo 與 TradeAmt
+            │    ├─ CheckMacValue 必須存在且有效，並核對 MerchantID、MerchantTradeNo 與 TradeAmt
             │    ├─ 通過 → 更新訂單狀態為 paid（僅限仍為 pending 的訂單）
             │    └─ 不符 → 500 ECPAY_QUERY_ERROR，訂單維持 pending
             └─ 其他 → 回傳「尚未完成付款」

@@ -22,6 +22,20 @@ const SURCHARGE_RULES = Object.freeze([
   { field: 'expressSurcharge', option: 'isExpress', amount: SHIPPING_RATES.EXPRESS_SURCHARGE }
 ]);
 
+// Business-owned server-side rule. The client may display an estimate, but
+// only the normalized delivery address determines whether this surcharge is
+// persisted on an order.
+const REMOTE_AREA_KEYWORDS = Object.freeze([
+  '連江縣',
+  '金門縣',
+  '澎湖縣',
+  '蘭嶼鄉',
+  '綠島鄉',
+  '琉球鄉',
+  '東沙',
+  '南沙'
+]);
+
 function assertValidInput({ subtotal, method, isRemoteArea, isExpress }) {
   if (!Number.isFinite(subtotal) || subtotal < 0) {
     throw new TypeError('subtotal 必須為非負有限數');
@@ -37,7 +51,13 @@ function assertValidInput({ subtotal, method, isRemoteArea, isExpress }) {
 }
 
 function qualifiesForFreeShipping(subtotal) {
-  return subtotal > SHIPPING_RATES.FREE_SHIPPING_THRESHOLD;
+  return subtotal >= SHIPPING_RATES.FREE_SHIPPING_THRESHOLD;
+}
+
+function isRemoteAreaAddress(address) {
+  if (typeof address !== 'string') return false;
+  const normalized = address.replace(/\s+/g, '');
+  return REMOTE_AREA_KEYWORDS.some(keyword => normalized.includes(keyword));
 }
 
 function calculateSurcharges(options) {
@@ -76,6 +96,8 @@ function calculateShipping({ subtotal, method, isRemoteArea = false, isExpress =
 module.exports = {
   SHIPPING_METHODS,
   SHIPPING_RATES,
+  REMOTE_AREA_KEYWORDS,
   qualifiesForFreeShipping,
+  isRemoteAreaAddress,
   calculateShipping
 };

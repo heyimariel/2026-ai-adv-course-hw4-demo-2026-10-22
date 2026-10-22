@@ -2,7 +2,7 @@ const express = require('express');
 const db = require('../database');
 const authMiddleware = require('../middleware/authMiddleware');
 const { queryTradeInfo } = require('../utils/ecpay');
-const { SHIPPING_METHODS, calculateShipping } = require('../utils/shipping');
+const { SHIPPING_METHODS, calculateShipping, isRemoteAreaAddress } = require('../utils/shipping');
 const {
   serializeOrder,
   findOrderById,
@@ -15,6 +15,7 @@ const {
   createOrderFromCart
 } = require('../services/orderService');
 const { isTradePaid, markOrderPaid } = require('../services/paymentService');
+const { consumePaymentCheckSlot } = require('../services/paymentCheckLimiter');
 const { isNonEmptyString } = require('../utils/validators');
 
 const router = express.Router();
@@ -43,7 +44,7 @@ function testEnvOnly(req, res, next) {
  *         application/json:
  *           schema:
  *             type: object
- *             required: [recipientName, recipientEmail, recipientAddress, shippingMethod, isRemoteArea, isExpress]
+ *             required: [recipientName, recipientEmail, recipientAddress, shippingMethod, isExpress]
  *             properties:
  *               recipientName:
  *                 type: string
@@ -55,8 +56,6 @@ function testEnvOnly(req, res, next) {
  *               shippingMethod:
  *                 type: string
  *                 enum: [home_delivery, convenience_store]
- *               isRemoteArea:
- *                 type: boolean
  *               isExpress:
  *                 type: boolean
  *     responses:
@@ -116,7 +115,6 @@ router.post('/', (req, res) => {
     recipientEmail,
     recipientAddress,
     shippingMethod,
-    isRemoteArea,
     isExpress
   } = req.body;
   const userId = req.user.userId;
@@ -146,11 +144,11 @@ router.post('/', (req, res) => {
     });
   }
 
-  if (typeof isRemoteArea !== 'boolean' || typeof isExpress !== 'boolean') {
+  if (typeof isExpress !== 'boolean') {
     return res.status(400).json({
       data: null,
       error: 'VALIDATION_ERROR',
-      message: 'isRemoteArea 與 isExpress 必須為 boolean'
+      message: 'isExpress 必須為 boolean'
     });
   }
 
@@ -178,6 +176,7 @@ router.post('/', (req, res) => {
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.product_price * item.quantity, 0
   );
+  const isRemoteArea = isRemoteAreaAddress(recipientAddress);
   const shipping = calculateShipping({
     subtotal,
     method: shippingMethod,
@@ -348,7 +347,7 @@ router.get('/', (req, res) => {
  *         description: 訂單不存在
  */
 router.get('/:id', (req, res) => {
-  const order = findOrderById(req.params.id);
+  const order = findOrderForUser(req.params.id, req.user.userId);
 
   if (!order) {
     return res.status(404).json({ data: null, error: 'NOT_FOUND', message: '訂單不存在' });
@@ -490,8 +489,10 @@ router.patch('/:id/pay', testEnvOnly, (req, res) => {
  *         description: 此訂單無綠界交易編號（NO_TRADE_NO）
  *       404:
  *         description: 訂單不存在
+ *       429:
+ *         description: 查詢過於頻繁（RATE_LIMITED）
  *       500:
- *         description: 綠界查詢失敗，或回應的 CheckMacValue、交易編號、金額驗證不符（ECPAY_QUERY_ERROR）
+ *         description: 綠界查詢失敗，或回應的 CheckMacValue、MerchantID、交易編號、金額驗證不符（ECPAY_QUERY_ERROR）
  */
 router.post('/:id/check-payment', async (req, res) => {
   const userId = req.user.userId;
@@ -512,6 +513,17 @@ router.post('/:id/check-payment', async (req, res) => {
 
   if (!order.merchant_trade_no) {
     return res.status(400).json({ data: null, error: 'NO_TRADE_NO', message: '此訂單無綠界交易編號' });
+  }
+
+  const paymentCheckSlot = consumePaymentCheckSlot(userId, order.id);
+  if (!paymentCheckSlot.allowed) {
+    const retryAfterSeconds = Math.ceil(paymentCheckSlot.retryAfterMs / 1000);
+    res.set('Retry-After', String(retryAfterSeconds));
+    return res.status(429).json({
+      data: null,
+      error: 'RATE_LIMITED',
+      message: `請於 ${retryAfterSeconds} 秒後再查詢付款狀態`
+    });
   }
 
   try {

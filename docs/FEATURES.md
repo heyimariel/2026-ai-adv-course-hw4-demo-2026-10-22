@@ -14,7 +14,7 @@
 | 後台訂單管理 | ✅ 完成 | 訂單查詢與狀態篩選 |
 | 前台頁面 | ✅ 完成 | EJS + Tailwind CSS |
 | 後台頁面 | ✅ 完成 | EJS + Tailwind CSS |
-| 測試 | ✅ 完成 | 55 項 Unit/API + 10 項 Integration + 1 項綠界真實付款 E2E |
+| 測試 | ✅ 完成 | 65 項 Unit/API + 12 項 Integration + 1 項綠界真實付款 E2E |
 | API 文件 | ✅ 完成 | Swagger/OpenAPI 生成與 Postman Collection 自動轉換 |
 
 ---
@@ -233,7 +233,7 @@
 | 偏遠地區 | 加收 200 元 |
 | 當日急件 | 加收 250 元 |
 
-`calculateShipping({ subtotal, method, isRemoteArea, isExpress })` 回傳 `baseFee`、`remoteAreaSurcharge`、`expressSurcharge`、`shippingFee` 及 `totalAmount` 等明細。滿額優惠僅將 `baseFee` 歸零，不影響附加費。
+訂單路由使用 `isRemoteAreaAddress(recipientAddress)` 依伺服器端地址規則決定偏遠地區，再呼叫 `calculateShipping({ subtotal, method, isRemoteArea, isExpress })`。計算結果包含 `baseFee`、`remoteAreaSurcharge`、`expressSurcharge`、`shippingFee` 及 `totalAmount`；滿額優惠僅將 `baseFee` 歸零，不影響附加費。
 
 ---
 
@@ -253,11 +253,10 @@
 | recipientEmail | string | 是 | 符合 email 正則 |
 | recipientAddress | string | 是 | 非空字串 |
 | shippingMethod | string | 是 | `home_delivery` 或 `convenience_store` |
-| isRemoteArea | boolean | 是 | 是否為偏遠地區 |
 | isExpress | boolean | 是 | 是否為當日急件 |
 
 **業務邏輯**：
-1. 驗證收件人欄位、Email 格式及配送條件
+1. 驗證收件人欄位、Email 格式及配送條件；由伺服器依收件地址判定偏遠地區
 2. 從 `cart_items JOIN products` 取得購物車品項（僅查 `user_id`，不含 session）
 3. 購物車為空 → 400 CART_EMPTY
 4. 逐品項檢查庫存，不足者收集名稱 → 400「以下商品庫存不足：名稱1, 名稱2」
@@ -273,7 +272,7 @@
 |--------|--------|------|
 | 400 | VALIDATION_ERROR | 缺少收件人欄位，或欄位不是字串 |
 | 400 | VALIDATION_ERROR | Email 格式不正確 |
-| 400 | VALIDATION_ERROR | 配送方式不支援，或偏遠/急件旗標非 boolean |
+| 400 | VALIDATION_ERROR | 配送方式不支援，或急件旗標非 boolean |
 | 400 | CART_EMPTY | 購物車為空 |
 | 400 | STOCK_INSUFFICIENT | 庫存不足（訊息中列出所有不足商品名稱） |
 
@@ -377,9 +376,10 @@
 2. 訂單已非 pending → 直接回傳現有狀態
 3. 訂單無 `merchant_trade_no` → 400
 4. 呼叫綠界 `POST /Cashier/QueryTradeInfo/V5`（TimeStamp 每次重新產生，有效期 3 分鐘）
-5. `TradeStatus === '1'` 時，先驗證回應的 CheckMacValue，並核對 `MerchantTradeNo`、`TradeAmt` 與訂單一致；任一不符 → 500 `ECPAY_QUERY_ERROR`，訂單維持 pending
-6. 驗證通過 → 以 `WHERE status = 'pending'` 條件更新為 `paid`（狀態不可逆），回傳成功
-7. 其他 TradeStatus → 回傳「尚未完成付款」，不改變訂單狀態
+5. `TradeStatus === '1'` 時，要求並驗證回應的 CheckMacValue，並核對 `MerchantID`、`MerchantTradeNo`、`TradeAmt` 與訂單一致；任一缺漏或不符 → 500 `ECPAY_QUERY_ERROR`，訂單維持 pending
+6. 同一會員與訂單 5 秒內重複查詢 → 429 `RATE_LIMITED`
+7. 驗證通過 → 以 `WHERE status = 'pending'` 條件更新為 `paid`（狀態不可逆），回傳成功
+8. 其他 TradeStatus → 回傳「尚未完成付款」，不改變訂單狀態
 
 **錯誤情境**：
 

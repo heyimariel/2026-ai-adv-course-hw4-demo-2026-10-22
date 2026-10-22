@@ -1,6 +1,7 @@
 const {
   SHIPPING_METHODS,
-  calculateShipping
+  calculateShipping,
+  isRemoteAreaAddress
 } = require('../src/utils/shipping');
 
 const { HOME_DELIVERY, CONVENIENCE_STORE } = SHIPPING_METHODS;
@@ -26,7 +27,7 @@ describe('Shipping module', () => {
       expect(result.shippingFee).toBe(120);
     });
 
-    it.skip('商品小計 1,500 元時免基本運費', () => {
+    it('商品小計 1,500 元時免基本運費', () => {
       const result = calculateShipping({ subtotal: 1500, method: HOME_DELIVERY });
 
       expect(result.qualifiesForFreeShipping).toBe(true);
@@ -42,6 +43,20 @@ describe('Shipping module', () => {
       expect(result.qualifiesForFreeShipping).toBe(true);
       expect(result.baseFee).toBe(0);
       expect(result.shippingFee).toBe(0);
+    });
+  });
+
+  describe('偏遠地區判定', () => {
+    it.each([
+      '澎湖縣馬公市中正路 1 號',
+      '金門縣金城鎮民生路 1 號',
+      '臺東縣蘭嶼鄉紅頭村 1 號'
+    ])('由伺服器依地址判定：%s', address => {
+      expect(isRemoteAreaAddress(address)).toBe(true);
+    });
+
+    it('一般地址不加收偏遠地區費用', () => {
+      expect(isRemoteAreaAddress('台北市信義區市府路 1 號')).toBe(false);
     });
   });
 

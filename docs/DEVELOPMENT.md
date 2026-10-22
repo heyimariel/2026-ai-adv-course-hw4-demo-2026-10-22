@@ -161,16 +161,16 @@ CREATE TABLE IF NOT EXISTS your_table (
 | `PORT` | 伺服器監聽埠號 | 選填 | `3001` |
 | `BASE_URL` | 伺服器基礎 URL | 選填 | `http://localhost:3001` |
 | `FRONTEND_URL` | CORS 允許來源 | 選填 | `http://localhost:3001`（app.js fallback） |
-| `ADMIN_EMAIL` | 種子管理員信箱 | 選填 | `admin@hexschool.com` |
-| `ADMIN_PASSWORD` | 種子管理員密碼 | 選填 | `12345678` |
+| `ADMIN_EMAIL` | 種子管理員信箱 | **必要**（非測試環境） | 無 |
+| `ADMIN_PASSWORD` | 種子管理員密碼；至少 12 字元 | **必要**（非測試環境） | 無 |
 | `NODE_ENV` | 執行環境 | 選填 | 無（`test` 時 bcrypt salt rounds 為 1、開放模擬付款端點；其他 → 10 rounds、模擬付款回 404） |
 | `ECPAY_MERCHANT_ID` | 綠界商店代號 | 選填 | `3002607` |
 | `ECPAY_HASH_KEY` | 綠界 CheckMacValue HashKey | 選填 | staging 官方測試值 |
 | `ECPAY_HASH_IV` | 綠界 CheckMacValue HashIV | 選填 | staging 官方測試值 |
 | `ECPAY_ENV` | 綠界環境（`staging` / `production`） | 選填 | `staging` |
 | `E2E_BASE_URL` | Playwright 對已啟動服務之網址 | 選填 | `http://localhost:3001` |
-| `E2E_ADMIN_EMAIL` | E2E 登入帳號 | 選填 | `admin@hexschool.com` |
-| `E2E_ADMIN_PASSWORD` | E2E 登入密碼 | 選填 | `12345678` |
+| `E2E_ADMIN_EMAIL` | E2E 登入帳號，須與已啟動服務一致 | E2E 必要 | 無 |
+| `E2E_ADMIN_PASSWORD` | E2E 登入密碼，須與已啟動服務一致 | E2E 必要 | 無 |
 | `PLAYWRIGHT_CHANNEL` | Playwright 瀏覽器 channel | 選填 | `chrome` |
 | `PLAYWRIGHT_HEADLESS` | 設 `false` 時顯示瀏覽器 | 選填 | headless |
 

@@ -15,9 +15,8 @@ const {
 const ORDER_PAYLOAD = {
   recipientName: '整合測試收件人',
   recipientEmail: 'recipient.integration@example.com',
-  recipientAddress: '台北市信義區測試路 100 號',
+  recipientAddress: '澎湖縣馬公市測試路 100 號',
   shippingMethod: 'convenience_store',
-  isRemoteArea: true,
   isExpress: true
 };
 
@@ -132,7 +131,7 @@ describe('Order checkout integration flow', () => {
     expect(checkoutPage.type).toBe('text/html');
     expect(checkoutPage.text).toContain('value="home_delivery"');
     expect(checkoutPage.text).toContain('value="convenience_store"');
-    expect(checkoutPage.text).toContain('form.isRemoteArea');
+    expect(checkoutPage.text).toContain('系統依收件地址判定');
     expect(checkoutPage.text).toContain('form.isExpress');
 
     const checkoutScript = await request(app).get('/js/pages/checkout.js');
@@ -247,6 +246,24 @@ describe('Order checkout integration flow', () => {
       total_amount: 1910
     });
     expect(detailResponse.body.data.items).toHaveLength(1);
+  });
+
+  it('derives the remote-area surcharge from the address instead of a client flag', async () => {
+    const member = await registerMember('server-shipping-rule@example.com');
+    await addProductToCart(member.token, primaryProduct.id, 1);
+
+    const response = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${member.token}`)
+      .send({ ...ORDER_PAYLOAD, isRemoteArea: false });
+
+    expectEnvelope(response, 201);
+    expect(response.body.data).toMatchObject({
+      subtotal: 700,
+      shipping_fee: 510,
+      is_remote_area: true,
+      total_amount: 1210
+    });
   });
 
   it('does not create an order or deduct stock when current stock is insufficient', async () => {
@@ -419,15 +436,24 @@ describe('Order checkout integration flow', () => {
   });
 
   it('keeps the order pending when a paid response fails verification', async () => {
-    const { token, order } = await createPendingOrder(primaryProduct, 'ecpay-forged@example.com');
-    const merchantTradeNo = order.order_no.replace(/-/g, '');
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const forgedResponses = [
+    const forgedResponseFactories = [
+      // Missing signature
+      ({ merchantTradeNo, order }) =>
+        `MerchantID=${ECPAY_CONFIG.merchantId}&MerchantTradeNo=${merchantTradeNo}&TradeAmt=${order.total_amount}&TradeStatus=1`,
       // Tampered signature
-      `MerchantID=${ECPAY_CONFIG.merchantId}&MerchantTradeNo=${merchantTradeNo}&TradeAmt=${order.total_amount}&TradeStatus=1&CheckMacValue=${'0'.repeat(64)}`,
+      ({ merchantTradeNo, order }) =>
+        `MerchantID=${ECPAY_CONFIG.merchantId}&MerchantTradeNo=${merchantTradeNo}&TradeAmt=${order.total_amount}&TradeStatus=1&CheckMacValue=${'0'.repeat(64)}`,
+      // Valid signature but a different merchant
+      ({ merchantTradeNo, order }) => signedTradeInfo({
+        MerchantID: '9999999',
+        MerchantTradeNo: merchantTradeNo,
+        TradeAmt: String(order.total_amount),
+        TradeStatus: '1'
+      }),
       // Valid signature but a different amount
-      signedTradeInfo({
+      ({ merchantTradeNo }) => signedTradeInfo({
         MerchantID: ECPAY_CONFIG.merchantId,
         MerchantTradeNo: merchantTradeNo,
         TradeAmt: '1',
@@ -435,7 +461,10 @@ describe('Order checkout integration flow', () => {
       })
     ];
 
-    for (const body of forgedResponses) {
+    for (const [index, makeBody] of forgedResponseFactories.entries()) {
+      const { token, order } = await createPendingOrder(primaryProduct, `ecpay-forged-${index}@example.com`);
+      const merchantTradeNo = order.order_no.replace(/-/g, '');
+      const body = makeBody({ merchantTradeNo, order });
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
@@ -451,5 +480,28 @@ describe('Order checkout integration flow', () => {
       expect(response.body.error).toBe('ECPAY_QUERY_ERROR');
       expect(db.prepare('SELECT status FROM orders WHERE id = ?').get(order.id).status).toBe('pending');
     }
+  });
+
+  it('rate limits repeated payment status queries for the same member and order', async () => {
+    const { token, order } = await createPendingOrder(primaryProduct, 'ecpay-rate-limit@example.com');
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => `MerchantID=${ECPAY_CONFIG.merchantId}&TradeStatus=0&RtnCode=0`
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const first = await request(app)
+      .post(`/api/orders/${order.id}/check-payment`)
+      .set('Authorization', `Bearer ${token}`);
+    expectEnvelope(first, 200);
+
+    const second = await request(app)
+      .post(`/api/orders/${order.id}/check-payment`)
+      .set('Authorization', `Bearer ${token}`);
+    expectEnvelope(second, 429);
+    expect(second.headers['retry-after']).toBeDefined();
+    expect(second.body.error).toBe('RATE_LIMITED');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

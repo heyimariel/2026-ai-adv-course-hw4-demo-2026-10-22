@@ -219,7 +219,6 @@
                   "recipientEmail",
                   "recipientAddress",
                   "shippingMethod",
-                  "isRemoteArea",
                   "isExpress"
                 ],
                 "properties": {
@@ -239,9 +238,6 @@
                       "home_delivery",
                       "convenience_store"
                     ]
-                  },
-                  "isRemoteArea": {
-                    "type": "boolean"
                   },
                   "isExpress": {
                     "type": "boolean"
@@ -660,8 +656,11 @@
           "404": {
             "description": "訂單不存在"
           },
+          "429": {
+            "description": "查詢過於頻繁（RATE_LIMITED）"
+          },
           "500": {
-            "description": "綠界查詢失敗，或回應的 CheckMacValue、交易編號、金額驗證不符（ECPAY_QUERY_ERROR）"
+            "description": "綠界查詢失敗，或回應的 CheckMacValue、MerchantID、交易編號、金額驗證不符（ECPAY_QUERY_ERROR）"
           }
         }
       }

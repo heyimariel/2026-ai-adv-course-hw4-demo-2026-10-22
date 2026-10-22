@@ -1,7 +1,11 @@
 const { test, expect } = require('@playwright/test');
 
-const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL || 'admin@hexschool.com';
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD || '12345678';
+const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD;
+
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+  throw new Error('執行 E2E 前請設定 E2E_ADMIN_EMAIL 與 E2E_ADMIN_PASSWORD，且須與已啟動服務的管理員帳密一致');
+}
 
 async function clickFirstVisible(candidates, description, timeout = 15000) {
   for (const candidate of candidates) {
@@ -144,7 +148,7 @@ test('從商店結帳並完成綠界網路 ATM 付款', async ({ page, request, 
     await expect(page).toHaveURL(`${baseURL}/checkout`);
 
     await page.getByPlaceholder('請輸入收件人姓名').fill('Playwright 測試收件人');
-    await page.getByPlaceholder('請輸入 Email').fill('admin@hexschool.com');
+    await page.getByPlaceholder('請輸入 Email').fill(ADMIN_EMAIL);
     await page.getByPlaceholder('請輸入收件地址').fill('台北市信義區測試路 1 號');
     await page.getByRole('radio', { name: /宅配/ }).check();
 
