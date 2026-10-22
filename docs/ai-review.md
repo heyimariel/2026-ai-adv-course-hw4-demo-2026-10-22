@@ -204,11 +204,11 @@
 - 現況：沒有 `POST /api/orders/:id/cancel`；orders status constraint 也不包含 `cancelled`。
 - 影響：會員無法取消 pending 訂單，系統亦無法原子回補庫存或防止重複回補。
 
-### Issue C — 我的訂單篩選與分頁尚未實作
+### Issue C — 我的訂單篩選與分頁（已於 Issue #5 完成）
 
 - 規格測試：`tests/acceptance/order-filter.test.js:33-119`
-- 現況：會員訂單列表忽略 `status`、`page`、`limit`，固定回傳所有訂單且沒有 pagination metadata。
-- 影響：狀態篩選、參數驗證、limit 上限與穩定分頁排序皆未符合驗收規格。
+- 完成內容：會員訂單列表支援 `status`、`page`、`limit`，嚴格驗證查詢參數、限制每頁最多 50 筆，並只計算與回傳當前會員的訂單。
+- 驗證：`npm run test:acceptance -- order-filter`。
 
 ## 已確認的正向控制
 

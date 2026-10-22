@@ -15,7 +15,7 @@
 | 後台訂單管理 | ✅ 完成 | 訂單查詢與狀態篩選 |
 | 前台頁面 | ✅ 完成 | EJS + Tailwind CSS |
 | 後台頁面 | ✅ 完成 | EJS + Tailwind CSS |
-| 測試 | ✅ 完成 | 80 項 Unit/API + 12 項 Integration + 10 項 Coupon Acceptance + 1 項綠界真實付款 E2E |
+| 測試 | ✅ 完成 | 82 項 Unit/API + 12 項 Integration + 10 項 Coupon Acceptance + 7 項 Order Filter Acceptance + 1 項綠界真實付款 E2E |
 | API 文件 | ✅ 完成 | Swagger/OpenAPI 生成與 Postman Collection 自動轉換 |
 
 ---
@@ -294,7 +294,17 @@
 
 ### GET /api/orders — 訂單列表
 
-**行為描述**：回傳當前使用者的所有訂單，依建立時間降序排列。無分頁。
+**行為描述**：回傳當前使用者的訂單，支援狀態篩選與分頁，依建立時間由新到舊排序。
+
+**Query Parameters**：
+
+| 欄位 | 預設 | 規則 |
+|------|------|------|
+| status | — | 選填；僅接受 `pending`、`paid`、`failed` |
+| page | 1 | 正整數 |
+| limit | 10 | 正整數，最大 50；超過時以 50 計 |
+
+**回應格式**：`data.orders` 為本人訂單；`data.pagination` 包含 `page`、`limit`、`total`、`totalPages`。無效查詢參數回傳 400 `VALIDATION_ERROR`。
 
 **回應欄位**：id, order_no, subtotal, coupon_code, discount, shipping_fee, shipping_method, is_remote_area, is_express, total_amount, status, created_at
 

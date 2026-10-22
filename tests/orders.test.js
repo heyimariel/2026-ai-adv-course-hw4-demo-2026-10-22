@@ -106,6 +106,72 @@ describe('Orders API', () => {
     expect(res.body.data).toHaveProperty('orders');
     expect(Array.isArray(res.body.data.orders)).toBe(true);
     expect(res.body.data.orders.length).toBeGreaterThan(0);
+    expect(res.body.data.pagination).toEqual({
+      page: 1,
+      limit: 10,
+      total: 1,
+      totalPages: 1
+    });
+  });
+
+  it('should filter and cap paginated order lists', async () => {
+    const pending = await request(app)
+      .get('/api/orders?status=pending&page=1&limit=100')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(pending.status).toBe(200);
+    expect(pending.body.data.orders.map(order => order.id)).toContain(orderId);
+    expect(pending.body.data.pagination).toEqual({
+      page: 1,
+      limit: 50,
+      total: 1,
+      totalPages: 1
+    });
+
+    const paid = await request(app)
+      .get('/api/orders?status=paid')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(paid.status).toBe(200);
+    expect(paid.body.data.orders).toEqual([]);
+    expect(paid.body.data.pagination.total).toBe(0);
+
+    const beyondLastPage = await request(app)
+      .get('/api/orders?page=2251799813685249&limit=1')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(beyondLastPage.status).toBe(200);
+    expect(beyondLastPage.body.data.orders).toEqual([]);
+    expect(beyondLastPage.body.data.pagination).toEqual({
+      page: 2251799813685249,
+      limit: 1,
+      total: 1,
+      totalPages: 1
+    });
+  });
+
+  it('should reject invalid order list query parameters', async () => {
+    const invalidQueries = [
+      'status=unknown',
+      'page=0',
+      'page=1.5',
+      'page=9007199254740991',
+      'limit=-1',
+      'limit=abc'
+    ];
+
+    for (const query of invalidQueries) {
+      const res = await request(app)
+        .get(`/api/orders?${query}`)
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        data: null,
+        error: 'VALIDATION_ERROR',
+        message: expect.any(String)
+      });
+    }
   });
 
   it('should get order detail', async () => {
