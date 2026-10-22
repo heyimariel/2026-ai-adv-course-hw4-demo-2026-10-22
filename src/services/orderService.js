@@ -38,6 +38,11 @@ function listOrdersForUser(userId, { status, limit, offset }) {
   const total = db.prepare(
     `SELECT COUNT(*) AS count FROM orders ${whereSql}`
   ).get(...params).count;
+
+  if (offset >= total) {
+    return { orders: [], total };
+  }
+
   const orders = db.prepare(
     `SELECT id, order_no, subtotal, coupon_code, discount, shipping_fee, shipping_method,
             is_remote_area, is_express, total_amount, status, created_at

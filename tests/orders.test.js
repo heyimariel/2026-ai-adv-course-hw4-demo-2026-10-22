@@ -135,6 +135,19 @@ describe('Orders API', () => {
     expect(paid.status).toBe(200);
     expect(paid.body.data.orders).toEqual([]);
     expect(paid.body.data.pagination.total).toBe(0);
+
+    const beyondLastPage = await request(app)
+      .get('/api/orders?page=2251799813685249&limit=1')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(beyondLastPage.status).toBe(200);
+    expect(beyondLastPage.body.data.orders).toEqual([]);
+    expect(beyondLastPage.body.data.pagination).toEqual({
+      page: 2251799813685249,
+      limit: 1,
+      total: 1,
+      totalPages: 1
+    });
   });
 
   it('should reject invalid order list query parameters', async () => {
