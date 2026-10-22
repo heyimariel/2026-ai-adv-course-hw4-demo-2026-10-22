@@ -67,6 +67,13 @@ npm run postman
 - 偏遠地區由伺服器依收件地址判定並加收 200 元；當日急件加收 250 元。
 - 滿額免運不免除附加費。建立訂單時由伺服器端 `src/utils/shipping.js` 統一重算。
 
+## 結帳優惠碼
+
+- `FLOWER100`：商品小計滿 800 元折抵 100 元。
+- `SPRING10`：商品小計折抵 10%，四捨五入至整數，最高折抵 300 元。
+- 優惠碼不分大小寫；折扣只適用商品小計，免運門檻以折扣後商品小計判斷。
+- 規則由 `src/utils/coupon.js` 統一驗證及計算；已失效或不符合條件時不會建立訂單。
+
 ## 常用指令
 
 | 指令 | 說明 |
@@ -76,7 +83,7 @@ npm run postman
 | `npm run dev:css` | Tailwind CSS watch 模式 |
 | `npm run css:build` | 編譯並壓縮 CSS |
 | `npm run test` | 同 `npm run test:unit` |
-| `npm run test:unit` | 執行單元與 API 測試（65 項） |
+| `npm run test:unit` | 執行單元與 API 測試（80 項） |
 | `npm run test:integration` | 執行結帳、DB、庫存、回滾與綠界整合測試（12 項） |
 | `npm run test:e2e` | 對已啟動的 3001 服務執行綠界網路 ATM 實測（1 項） |
 | `npm run test:acceptance` | 第四場 3 個 Issue 的驗收測試；可加檔名篩選，如 `npm run test:acceptance -- coupon` |

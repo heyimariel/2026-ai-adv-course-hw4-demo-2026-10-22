@@ -186,6 +186,8 @@ describe('Order checkout integration flow', () => {
     expect(orderResponse.body.error).toBeNull();
     expect(orderResponse.body.data).toMatchObject({
       subtotal: 1400,
+      discount: 0,
+      coupon_code: null,
       shipping_fee: 510,
       shipping_method: 'convenience_store',
       is_remote_area: true,
@@ -209,6 +211,8 @@ describe('Order checkout integration flow', () => {
       recipient_email: ORDER_PAYLOAD.recipientEmail,
       recipient_address: ORDER_PAYLOAD.recipientAddress,
       subtotal: 1400,
+      discount: 0,
+      coupon_code: null,
       shipping_fee: 510,
       shipping_method: 'convenience_store',
       is_remote_area: 1,
@@ -242,6 +246,8 @@ describe('Order checkout integration flow', () => {
     expect(detailResponse.body.data).toMatchObject({
       id: orderId,
       subtotal: 1400,
+      discount: 0,
+      coupon_code: null,
       shipping_fee: 510,
       total_amount: 1910
     });

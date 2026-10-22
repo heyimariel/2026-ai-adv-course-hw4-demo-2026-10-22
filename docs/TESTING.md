@@ -13,7 +13,7 @@
 ## 執行指令
 
 ```bash
-# 單元與 API 測試（8 個檔案、65 項測試）
+# 單元與 API 測試（9 個檔案、80 項測試）
 npm run test:unit
 
 # 結帳、訂單、DB、庫存、回滾與綠界整合測試（12 項測試）
@@ -34,7 +34,7 @@ Integration Test 不呼叫真實綠界 API，無需外部網路。
 
 | 檔案 | 對應 Issue（規格見第四場作業說明附錄） |
 |------|------------|
-| `tests/acceptance/coupon.test.js` | Issue A：結帳優惠碼 |
+| `tests/acceptance/coupon.test.js` | Issue A：結帳優惠碼（已實作，10 項通過） |
 | `tests/acceptance/cancel-order.test.js` | Issue B：取消未付款訂單並回補庫存 |
 | `tests/acceptance/order-filter.test.js` | Issue C：我的訂單篩選與分頁 |
 
@@ -45,7 +45,7 @@ npm run test:acceptance -- coupon       # 只跑檔名包含 coupon 的測試
 
 - 設定檔為 `vitest.acceptance.config.js`，同樣使用記憶體 SQLite。
 - 只透過 HTTP API 驗證，不依賴內部函式名稱或資料表結構；每個測試自建會員與指定價格的商品。
-- 在 Issue 完成前預期失敗，因此不包含在 `test:unit`、`test:integration` 與 CI 中。
+- 尚未實作的 Issue 驗收測試預期失敗，因此不包含在 `test:unit`、`test:integration` 與 CI 中；Issue A 的 Coupon 驗收測試已可獨立通過。
 
 ## 持續整合（CI）
 
@@ -135,6 +135,7 @@ Integration Test 中有兩層防護：
 
 | 檔案 | 範圍 |
 |------|------|
+| `tests/coupon.test.js` | Coupon 正規化、固定與百分比折扣、門檻、上限、失效及錯誤輸入 |
 | `tests/shipping.test.js` | Shipping 純函式、門檻與附加費 |
 | `tests/adminCredentials.test.js` | 非測試環境管理員帳密必要性與安全基線 |
 | `tests/auth.test.js` | 註冊、登入、重複 Email、個人資料、非字串欄位、JSON 格式錯誤 |
@@ -155,7 +156,7 @@ Integration Test 中有兩層防護：
 | 記憶體 DB | `PRAGMA database_list` 無實體檔案 |
 | 前端入口 | `/cart`、`/checkout`、checkout.js 皆可取得，配送欄位與地址判定提示存在 |
 | 完整建單 | 註冊 → 取商品 → 加購物車 → 建立含配送資訊的訂單 |
-| DB 持久化 | orders、order_items、收件/配送快照正確 |
+| DB 持久化 | orders、order_items、收件/優惠/配送快照正確 |
 | 金額 | 小計 1,400、運費 510、總額 1,910 |
 | 偏遠地區 | 即使客戶端傳 false，伺服器仍依偏遠地址加收並保存快照 |
 | 庫存/購物車 | 庫存 10 → 8，建單後購物車清空 |

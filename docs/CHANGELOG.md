@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Added
+- Issue #1 結帳優惠碼：新增 `src/utils/coupon.js`，支援 `FLOWER100`、`SPRING10`、失效碼驗證、門檻與折扣上限
+- 訂單新增 `coupon_code` 與 `discount` 快照；免運門檻改以折扣後商品小計判斷，總額為商品小計減折扣再加運費
+- 新增 15 項 Coupon Unit Test，並通過 10 項既有 Coupon Acceptance Test
+
 ### Security
 - 非測試環境不再接受公開預設管理員密碼；`ADMIN_EMAIL`／`ADMIN_PASSWORD` 改為必要設定，並支援 seed 管理員密碼輪替與舊 starter 帳號升級
 - 會員訂單詳情改以訂單 ID 與目前會員 ID 聯合查詢，阻止跨會員讀取收件與交易資料
@@ -13,7 +18,7 @@
 
 ### Changed
 - 偏遠地區附加費改由伺服器依收件地址規則判定，不再採信客戶端旗標
-- Unit/API 測試擴充為 65 項，Integration Test 擴充為 12 項
+- Unit/API 測試擴充為 80 項，Integration Test 維持 12 項
 - 抽出 `src/services/orderService.js`（訂單查詢、序列化與建單 transaction）與 `src/services/paymentService.js`（QueryTradeInfo 結果判斷與付款狀態更新）
 - 新增 `src/utils/validators.js` 統一路由輸入驗證；Shipping 模組改以規則表描述，單元測試改為 table-driven
 - `postman_collection.json` 不進版控（列入 `.gitignore`），需要時以 `npm run postman` 產生；路由變更後只需以 `npm run openapi` 同步 `openapi.json`。`docs/TESTING.md` 補上產生與匯入步驟

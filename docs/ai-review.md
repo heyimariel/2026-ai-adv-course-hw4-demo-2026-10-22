@@ -17,7 +17,7 @@
 - 1,500 元免運門檻改為 `>=`，原 skipped test 已恢復。
 - 付款狀態查詢加入每會員、每訂單 5 秒冷卻與 429 回應。
 
-修正後驗證結果：`npm run test:unit` 為 `8 files / 65 tests passed`；`npm run test:integration` 為 `1 file / 12 tests passed`，無 skipped test。後續 Findings 保留原始審查證據，作為修正前狀態紀錄；三項 starter acceptance 功能仍不在本次範圍。
+原審查修正後驗證結果：`npm run test:unit` 為 `8 files / 65 tests passed`；`npm run test:integration` 為 `1 file / 12 tests passed`，無 skipped test。後續 Findings 保留原始審查證據，作為修正前狀態紀錄。Issue A 優惠碼已於後續 Issue #1 完成；Issue B、C 仍待實作。
 
 ## 摘要
 
@@ -190,13 +190,13 @@
 
 ## Starter 已知驗收缺口
 
-下列項目有 acceptance tests，但依現有 starter 文件屬於尚待實作的功能，不列為本次既有功能回歸。`test:unit`、`test:integration` 與 CI 都不會執行這些 acceptance tests，因此前述全綠結果不能代表下列功能已完成。
+下列 starter 項目有 acceptance tests，但不列為原始 AI Review 的既有功能回歸。`test:unit`、`test:integration` 與 CI 都不會執行 acceptance tests，因此需分別執行指定驗收測試。
 
-### Issue A — 優惠碼尚未實作
+### Issue A — 優惠碼（已於 Issue #1 完成）
 
 - 規格測試：`tests/acceptance/coupon.test.js:35-121`
-- 現況：建立訂單不讀取 `couponCode`，資料庫與訂單快照也沒有 coupon／discount 欄位。
-- 影響：合法優惠碼不折扣；無效、過期或未達門檻的優惠碼會被忽略並照常建單、扣庫存及清空購物車；免運也沒有依折扣後小計判斷。
+- 完成內容：Coupon 模組集中優惠規則；建單驗證 `couponCode`，保存 `coupon_code`／`discount` 快照，並以折扣後商品小計判斷免運。
+- 驗證：`npm run test:acceptance -- coupon`。
 
 ### Issue B — 取消訂單與庫存回補尚未實作
 
