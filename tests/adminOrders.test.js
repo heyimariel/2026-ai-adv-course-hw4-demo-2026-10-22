@@ -70,10 +70,12 @@ describe('Admin Orders API', () => {
     expect(res.body.data).toHaveProperty('id', orderId);
     expect(res.body.data).toHaveProperty('order_no');
     expect(res.body.data).toHaveProperty('subtotal');
+    expect(res.body.data).toHaveProperty('discount', 0);
+    expect(res.body.data).toHaveProperty('coupon_code', null);
     expect(res.body.data).toHaveProperty('shipping_fee');
     expect(res.body.data).toHaveProperty('shipping_method', 'home_delivery');
     expect(res.body.data.total_amount).toBe(
-      res.body.data.subtotal + res.body.data.shipping_fee
+      res.body.data.subtotal - res.body.data.discount + res.body.data.shipping_fee
     );
     expect(res.body.data).toHaveProperty('items');
     expect(res.body.data).toHaveProperty('user');

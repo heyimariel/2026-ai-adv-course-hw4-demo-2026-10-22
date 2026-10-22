@@ -42,6 +42,8 @@ describe('Orders API', () => {
     expect(res.body.data).toHaveProperty('id');
     expect(res.body.data).toHaveProperty('order_no');
     expect(res.body.data).toHaveProperty('subtotal', productPrice);
+    expect(res.body.data).toHaveProperty('discount', 0);
+    expect(res.body.data).toHaveProperty('coupon_code', null);
     expect(res.body.data).toHaveProperty(
       'shipping_fee',
       (productPrice >= 1500 ? 0 : 60) + 200 + 250
@@ -51,7 +53,7 @@ describe('Orders API', () => {
     expect(res.body.data).toHaveProperty('is_express', true);
     expect(res.body.data).toHaveProperty('total_amount');
     expect(res.body.data.total_amount).toBe(
-      res.body.data.subtotal + res.body.data.shipping_fee
+      res.body.data.subtotal - res.body.data.discount + res.body.data.shipping_fee
     );
     expect(res.body.data).toHaveProperty('status', 'pending');
     expect(res.body.data).toHaveProperty('items');
@@ -117,12 +119,14 @@ describe('Orders API', () => {
     expect(res.body.data).toHaveProperty('id', orderId);
     expect(res.body.data).toHaveProperty('order_no');
     expect(res.body.data).toHaveProperty('subtotal', productPrice);
+    expect(res.body.data).toHaveProperty('discount', 0);
+    expect(res.body.data).toHaveProperty('coupon_code', null);
     expect(res.body.data).toHaveProperty('shipping_fee');
     expect(res.body.data).toHaveProperty('shipping_method', 'convenience_store');
     expect(res.body.data).toHaveProperty('is_remote_area', true);
     expect(res.body.data).toHaveProperty('is_express', true);
     expect(res.body.data.total_amount).toBe(
-      res.body.data.subtotal + res.body.data.shipping_fee
+      res.body.data.subtotal - res.body.data.discount + res.body.data.shipping_fee
     );
     expect(res.body.data).toHaveProperty('items');
     expect(Array.isArray(res.body.data.items)).toBe(true);

@@ -239,6 +239,10 @@
                       "convenience_store"
                     ]
                   },
+                  "couponCode": {
+                    "type": "string",
+                    "description": "選填，不分大小寫"
+                  },
                   "isExpress": {
                     "type": "boolean"
                   }
@@ -266,6 +270,13 @@
                         },
                         "subtotal": {
                           "type": "integer"
+                        },
+                        "discount": {
+                          "type": "integer"
+                        },
+                        "coupon_code": {
+                          "type": "string",
+                          "nullable": true
                         },
                         "shipping_fee": {
                           "type": "integer"
@@ -324,7 +335,7 @@
             }
           },
           "400": {
-            "description": "購物車為空或庫存不足或收件資訊缺失"
+            "description": "購物車為空、庫存不足、收件資訊缺失或優惠碼不可使用"
           }
         }
       },
@@ -362,6 +373,13 @@
                               },
                               "subtotal": {
                                 "type": "integer"
+                              },
+                              "discount": {
+                                "type": "integer"
+                              },
+                              "coupon_code": {
+                                "type": "string",
+                                "nullable": true
                               },
                               "shipping_fee": {
                                 "type": "integer"
@@ -447,6 +465,13 @@
                         },
                         "subtotal": {
                           "type": "integer"
+                        },
+                        "discount": {
+                          "type": "integer"
+                        },
+                        "coupon_code": {
+                          "type": "string",
+                          "nullable": true
                         },
                         "shipping_fee": {
                           "type": "integer"
@@ -1628,6 +1653,13 @@
                               "subtotal": {
                                 "type": "integer"
                               },
+                              "discount": {
+                                "type": "integer"
+                              },
+                              "coupon_code": {
+                                "type": "string",
+                                "nullable": true
+                              },
                               "shipping_fee": {
                                 "type": "integer"
                               },
@@ -1732,6 +1764,13 @@
                         },
                         "subtotal": {
                           "type": "integer"
+                        },
+                        "discount": {
+                          "type": "integer"
+                        },
+                        "coupon_code": {
+                          "type": "string",
+                          "nullable": true
                         },
                         "shipping_fee": {
                           "type": "integer"

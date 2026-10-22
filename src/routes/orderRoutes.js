@@ -16,6 +16,7 @@ const {
 } = require('../services/orderService');
 const { isTradePaid, markOrderPaid } = require('../services/paymentService');
 const { consumePaymentCheckSlot } = require('../services/paymentCheckLimiter');
+const { CouponValidationError, applyCoupon } = require('../utils/coupon');
 const { isNonEmptyString } = require('../utils/validators');
 
 const router = express.Router();
@@ -56,6 +57,9 @@ function testEnvOnly(req, res, next) {
  *               shippingMethod:
  *                 type: string
  *                 enum: [home_delivery, convenience_store]
+ *               couponCode:
+ *                 type: string
+ *                 description: 選填，不分大小寫
  *               isExpress:
  *                 type: boolean
  *     responses:
@@ -75,6 +79,11 @@ function testEnvOnly(req, res, next) {
  *                       type: string
  *                     subtotal:
  *                       type: integer
+ *                     discount:
+ *                       type: integer
+ *                     coupon_code:
+ *                       type: string
+ *                       nullable: true
  *                     shipping_fee:
  *                       type: integer
  *                     shipping_method:
@@ -107,7 +116,7 @@ function testEnvOnly(req, res, next) {
  *                 message:
  *                   type: string
  *       400:
- *         description: 購物車為空或庫存不足或收件資訊缺失
+ *         description: 購物車為空、庫存不足、收件資訊缺失或優惠碼不可使用
  */
 router.post('/', (req, res) => {
   const {
@@ -115,6 +124,7 @@ router.post('/', (req, res) => {
     recipientEmail,
     recipientAddress,
     shippingMethod,
+    couponCode,
     isExpress
   } = req.body;
   const userId = req.user.userId;
@@ -176,9 +186,23 @@ router.post('/', (req, res) => {
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.product_price * item.quantity, 0
   );
+  let coupon;
+  try {
+    coupon = applyCoupon(couponCode, subtotal);
+  } catch (error) {
+    if (error instanceof CouponValidationError) {
+      return res.status(400).json({
+        data: null,
+        error: error.code,
+        message: error.message
+      });
+    }
+    throw error;
+  }
+
   const isRemoteArea = isRemoteAreaAddress(recipientAddress);
   const shipping = calculateShipping({
-    subtotal,
+    subtotal: coupon.discountedSubtotal,
     method: shippingMethod,
     isRemoteArea,
     isExpress
@@ -190,6 +214,7 @@ router.post('/', (req, res) => {
     delivery: { method: shippingMethod, isRemoteArea, isExpress },
     cartItems,
     subtotal,
+    coupon,
     shipping
   });
 
@@ -201,6 +226,8 @@ router.post('/', (req, res) => {
       id: order.id,
       order_no: order.order_no,
       subtotal: order.subtotal,
+      discount: order.discount,
+      coupon_code: order.coupon_code,
       shipping_fee: order.shipping_fee,
       shipping_method: order.shipping_method,
       is_remote_area: Boolean(order.is_remote_area),
@@ -245,6 +272,11 @@ router.post('/', (req, res) => {
  *                             type: string
  *                           subtotal:
  *                             type: integer
+ *                           discount:
+ *                             type: integer
+ *                           coupon_code:
+ *                             type: string
+ *                             nullable: true
  *                           shipping_fee:
  *                             type: integer
  *                           shipping_method:
@@ -308,6 +340,11 @@ router.get('/', (req, res) => {
  *                       type: string
  *                     subtotal:
  *                       type: integer
+ *                     discount:
+ *                       type: integer
+ *                     coupon_code:
+ *                       type: string
+ *                       nullable: true
  *                     shipping_fee:
  *                       type: integer
  *                     shipping_method:
