@@ -17,7 +17,7 @@ const {
 const { isTradePaid, markOrderPaid } = require('../services/paymentService');
 const { consumePaymentCheckSlot } = require('../services/paymentCheckLimiter');
 const { CouponValidationError, applyCoupon } = require('../utils/coupon');
-const { isNonEmptyString } = require('../utils/validators');
+const { isNonEmptyString, parsePositiveInteger } = require('../utils/validators');
 
 const router = express.Router();
 
@@ -250,6 +250,26 @@ router.post('/', (req, res) => {
  *     tags: [Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, paid, failed]
+ *         description: 依訂單狀態篩選
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
  *     responses:
  *       200:
  *         description: 成功
@@ -287,17 +307,61 @@ router.post('/', (req, res) => {
  *                             type: string
  *                           created_at:
  *                             type: string
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
  *                 error:
  *                   type: string
  *                   nullable: true
  *                 message:
  *                   type: string
+ *       400:
+ *         description: 查詢參數格式錯誤
  */
 router.get('/', (req, res) => {
-  const orders = listOrdersForUser(req.user.userId);
+  const allowedStatuses = ['pending', 'paid', 'failed'];
+  const status = req.query.status;
+  const page = req.query.page === undefined ? 1 : parsePositiveInteger(req.query.page);
+  const requestedLimit = req.query.limit === undefined ? 10 : parsePositiveInteger(req.query.limit);
+
+  if (status !== undefined && (typeof status !== 'string' || !allowedStatuses.includes(status))) {
+    return res.status(400).json({
+      data: null,
+      error: 'VALIDATION_ERROR',
+      message: 'status 必須為 pending、paid 或 failed'
+    });
+  }
+
+  if (page === null || requestedLimit === null) {
+    return res.status(400).json({
+      data: null,
+      error: 'VALIDATION_ERROR',
+      message: 'page 與 limit 必須為正整數'
+    });
+  }
+
+  const limit = Math.min(requestedLimit, 50);
+  const offset = (page - 1) * limit;
+  const { orders, total } = listOrdersForUser(req.user.userId, { status, limit, offset });
 
   res.json({
-    data: { orders: orders.map(serializeOrder) },
+    data: {
+      orders: orders.map(serializeOrder),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    },
     error: null,
     message: '成功'
   });

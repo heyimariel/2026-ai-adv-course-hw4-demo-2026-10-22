@@ -13,7 +13,7 @@
 ## 執行指令
 
 ```bash
-# 單元與 API 測試（9 個檔案、80 項測試）
+# 單元與 API 測試（9 個檔案、82 項測試）
 npm run test:unit
 
 # 結帳、訂單、DB、庫存、回滾與綠界整合測試（12 項測試）
@@ -36,16 +36,17 @@ Integration Test 不呼叫真實綠界 API，無需外部網路。
 |------|------------|
 | `tests/acceptance/coupon.test.js` | Issue A：結帳優惠碼（已實作，10 項通過） |
 | `tests/acceptance/cancel-order.test.js` | Issue B：取消未付款訂單並回補庫存 |
-| `tests/acceptance/order-filter.test.js` | Issue C：我的訂單篩選與分頁 |
+| `tests/acceptance/order-filter.test.js` | Issue C：我的訂單篩選與分頁（已實作，7 項通過） |
 
 ```bash
 npm run test:acceptance                 # 全部
 npm run test:acceptance -- coupon       # 只跑檔名包含 coupon 的測試
+npm run test:acceptance -- order-filter # 只跑會員訂單篩選與分頁測試
 ```
 
 - 設定檔為 `vitest.acceptance.config.js`，同樣使用記憶體 SQLite。
 - 只透過 HTTP API 驗證，不依賴內部函式名稱或資料表結構；每個測試自建會員與指定價格的商品。
-- 尚未實作的 Issue 驗收測試預期失敗，因此不包含在 `test:unit`、`test:integration` 與 CI 中；Issue A 的 Coupon 驗收測試已可獨立通過。
+- 尚未實作的 Issue 驗收測試預期失敗，因此不包含在 `test:unit`、`test:integration` 與 CI 中；Issue A 的 Coupon 與 Issue C 的訂單篩選驗收測試皆可獨立通過。
 
 ## 持續整合（CI）
 
